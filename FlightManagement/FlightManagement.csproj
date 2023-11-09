@@ -6,11 +6,14 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <AnalysisLevel>5.0</AnalysisLevel>
+    <UserSecretsId>faf079fb-25dc-4a2c-805a-8c8291fc0ba8</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.10" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="6.0.10" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity" Version="2.1.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="6.0.11" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Core" Version="2.2.2" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.23" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="6.0.23">
       <PrivateAssets>all</PrivateAssets>
@@ -19,7 +22,9 @@
     <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="6.0.16" />
     <PackageReference Include="NEST" Version="6.0.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
+    <PackageReference Include="Swashbuckle.AspNetCore.Filters" Version="7.0.12" />
     <PackageReference Include="System.ComponentModel.Annotations" Version="5.0.0" />
+    <PackageReference Include="X.PagedList" Version="8.4.7" />
     <PackageReference Include="xunit.extensibility.core" Version="2.5.3" />
     <PackageReference Include="xunit.extensibility.execution" Version="2.5.3" />
   </ItemGroup>

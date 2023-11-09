@@ -5,7 +5,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace FlightManagement.Migrations
 {
-    public partial class Initial : Migration
+    public partial class II : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -13,7 +13,7 @@ namespace FlightManagement.Migrations
                 name: "AddFlight",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
+                    FlightId = table.Column<int>(type: "int", nullable: false)
                         .Annotation("SqlServer:Identity", "1, 1"),
                     Flightno = table.Column<string>(type: "nvarchar(max)", nullable: false),
                     Date = table.Column<DateTime>(type: "date", nullable: false),
@@ -22,7 +22,7 @@ namespace FlightManagement.Migrations
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_AddFlight", x => x.Id);
+                    table.PrimaryKey("PK_AddFlight", x => x.FlightId);
                 });
 
             migrationBuilder.CreateTable(
@@ -65,15 +65,42 @@ namespace FlightManagement.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "LoginUser",
+                name: "Group",
                 columns: table => new
                 {
-                    Username = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    Password = table.Column<string>(type: "nvarchar(max)", nullable: false)
+                    GroupId = table.Column<int>(type: "int", nullable: false)
+                        .Annotation("SqlServer:Identity", "1, 1"),
+                    GroupName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Member = table.Column<int>(type: "int", nullable: true),
+                    Permissions = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_LoginUser", x => x.Username);
+                    table.PrimaryKey("PK_Group", x => x.GroupId);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "DocumentInfo",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "int", nullable: false),
+                    Documentname = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Documenttype = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Documentversion = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Note = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Permission = table.Column<int>(type: "int", nullable: true),
+                    FileName = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    IdFlight = table.Column<int>(type: "int", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_DocumentInfo", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_DocumentInfo_AddFlight_Id",
+                        column: x => x.Id,
+                        principalTable: "AddFlight",
+                        principalColumn: "FlightId",
+                        onDelete: ReferentialAction.Cascade);
                 });
 
             migrationBuilder.CreateTable(
@@ -95,29 +122,6 @@ namespace FlightManagement.Migrations
                         principalTable: "AspNetRoles",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
-                });
-
-            migrationBuilder.CreateTable(
-                name: "DocumentInfo",
-                columns: table => new
-                {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    Documentname = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Documenttype = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Documentversion = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    Note = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    RoleId = table.Column<string>(type: "nvarchar(450)", nullable: true),
-                    FileName = table.Column<string>(type: "nvarchar(max)", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_DocumentInfo", x => x.Id);
-                    table.ForeignKey(
-                        name: "FK_DocumentInfo_AspNetRoles_RoleId",
-                        column: x => x.RoleId,
-                        principalTable: "AspNetRoles",
-                        principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
@@ -206,25 +210,21 @@ namespace FlightManagement.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "Permission",
+                name: "Login",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
-                    GroupName = table.Column<string>(type: "nvarchar(max)", nullable: false),
-                    Members = table.Column<int>(type: "int", nullable: true),
-                    CreateDate = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    Note = table.Column<string>(type: "nvarchar(max)", nullable: true),
-                    CreatorUsername = table.Column<string>(type: "nvarchar(450)", nullable: true)
+                    Username = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Password = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    GroupsGroupId = table.Column<int>(type: "int", nullable: true)
                 },
                 constraints: table =>
                 {
-                    table.PrimaryKey("PK_Permission", x => x.Id);
+                    table.PrimaryKey("PK_Login", x => x.Username);
                     table.ForeignKey(
-                        name: "FK_Permission_LoginUser_CreatorUsername",
-                        column: x => x.CreatorUsername,
-                        principalTable: "LoginUser",
-                        principalColumn: "Username");
+                        name: "FK_Login_Group_GroupsGroupId",
+                        column: x => x.GroupsGroupId,
+                        principalTable: "Group",
+                        principalColumn: "GroupId");
                 });
 
             migrationBuilder.InsertData(
@@ -232,10 +232,10 @@ namespace FlightManagement.Migrations
                 columns: new[] { "Id", "ConcurrencyStamp", "Name", "NormalizedName" },
                 values: new object[,]
                 {
-                    { "b34177b1-e223-4f52-b4b9-b73cc6db93fb", "3", "Pilot", "Pilot" },
-                    { "baad14b1-6f34-404b-adca-cde26dec4d6e", "4", "Crew", "Crew" },
-                    { "c9ed6047-952d-4ef6-a5e6-54ce8e757ac9", "1", "Admin", "Admin" },
-                    { "dd1723d3-a5e0-4d26-9989-fec4b34932ef", "2", "Employee", "Employee" }
+                    { "1", "1", "Admin", "Admin" },
+                    { "2", "2", "Employee", "Employee" },
+                    { "3", "3", "Pilot", "Pilot" },
+                    { "4", "4", "Crew", "Crew" }
                 });
 
             migrationBuilder.CreateIndex(
@@ -278,21 +278,13 @@ namespace FlightManagement.Migrations
                 filter: "[NormalizedUserName] IS NOT NULL");
 
             migrationBuilder.CreateIndex(
-                name: "IX_DocumentInfo_RoleId",
-                table: "DocumentInfo",
-                column: "RoleId");
-
-            migrationBuilder.CreateIndex(
-                name: "IX_Permission_CreatorUsername",
-                table: "Permission",
-                column: "CreatorUsername");
+                name: "IX_Login_GroupsGroupId",
+                table: "Login",
+                column: "GroupsGroupId");
         }
 
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropTable(
-                name: "AddFlight");
-
             migrationBuilder.DropTable(
                 name: "AspNetRoleClaims");
 
@@ -312,16 +304,19 @@ namespace FlightManagement.Migrations
                 name: "DocumentInfo");
 
             migrationBuilder.DropTable(
-                name: "Permission");
-
-            migrationBuilder.DropTable(
-                name: "AspNetUsers");
+                name: "Login");
 
             migrationBuilder.DropTable(
                 name: "AspNetRoles");
 
             migrationBuilder.DropTable(
-                name: "LoginUser");
+                name: "AspNetUsers");
+
+            migrationBuilder.DropTable(
+                name: "AddFlight");
+
+            migrationBuilder.DropTable(
+                name: "Group");
         }
     }
 }

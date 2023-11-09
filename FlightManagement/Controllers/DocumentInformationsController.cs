@@ -9,11 +9,19 @@ using FlightManagement.Models;
 using FlightManagement.Models.Management_Flight;
 using Microsoft.AspNetCore.StaticFiles;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Authorization;
+using FlightManagement.Models.Authentication.Login;
+using System.ComponentModel;
+using FlightManagement.NewFolder;
+using static FlightManagement.NewFolder.EnumExtensions;
+using X.PagedList;
+using static FlightManagement.Controllers.GroupsController;
 
 namespace FlightManagement.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
+
     public class DocumentInformationsController : ControllerBase
     {
         private readonly ApplicationDBContext _context;
@@ -28,16 +36,25 @@ namespace FlightManagement.Controllers
 
         // GET: api/DocumentInformations
         [HttpGet]
-        public async Task<ActionResult<IEnumerable<DocumentInformation>>> GetDocumentInfo()
+        public async Task<IActionResult> GetDocumentInfo(int? page)
         {
-          if (_context.DocumentInfo == null)
-          {
-              return NotFound();
-          }
-            var documentsWithRoles = await _context.DocumentInfo.Include(d => d.Role).ToListAsync();
+            if (_context.DocumentInfo == null)
+            {
+                return NotFound();
+            }
 
-            return documentsWithRoles;
+            var documentInfos = _context.DocumentInfo.Include(d => d.AddFlight).ToList();
+
+            int pageSize = 3; 
+
+            int pageNumber = page ?? 1;
+
+            var pagedDocumentInfos = documentInfos.ToPagedList(pageNumber, pageSize);
+
+            return new JsonResult(new { Data = pagedDocumentInfos });
         }
+
+
 
         // GET: api/DocumentInformations/5
         [HttpGet("{id}")]
@@ -56,6 +73,33 @@ namespace FlightManagement.Controllers
 
             return documentInformation;
         }
+
+        [HttpGet("SearchByGroupNameAndFlight")]
+        public async Task<ActionResult<IEnumerable<DocumentInformation>>> SearchDocumentsByGroupNameAndFlight(string groupName, int idFlight)
+        {
+            if (string.IsNullOrWhiteSpace(groupName))
+            {
+                return BadRequest("Group name cannot be empty.");
+            }
+
+            if (idFlight <= 0)
+            {
+                return BadRequest("IdFlight must be a positive integer.");
+            }
+
+            // Tìm tài liệu (DocumentInformation) dựa trên tên nhóm (GroupName) và IdFlight tương ứng trong tài liệu
+            var documents = await _context.DocumentInfo
+                .Where(d => d.Groups != null && d.Groups.GroupName == groupName && d.IdFlight == idFlight)
+                .ToListAsync();
+
+            if (documents == null || !documents.Any())
+            {
+                return NotFound("No documents found for the provided group name and IdFlight.");
+            }
+
+            return documents;
+        }
+
 
         // PUT: api/DocumentInformations/5
         // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
@@ -112,7 +156,7 @@ namespace FlightManagement.Controllers
             }
             return filename;
         }
-
+  
         [HttpPost]
         public async Task<ActionResult<DocumentInformation>> PostDocumentInformation([FromForm] DocumentInformation documentInformation, IFormFile file)
         {
@@ -120,17 +164,6 @@ namespace FlightManagement.Controllers
             {
                 return Problem("Entity set 'ApplicationDBContext.DocumentInfo' is null.");
             }
-
-            // Kiểm tra xem Role có tồn tại không
-            var existingRole = await _context.Roles.FirstOrDefaultAsync(r => r.Id == documentInformation.RoleId);
-
-            if (existingRole == null)
-            {
-                return BadRequest("Role not found.");
-            }
-
-            // Gán Role đã tìm thấy cho DocumentInformation
-            documentInformation.Role = existingRole;
 
             // Kiểm tra xem có tệp tải lên không
             if (file != null && file.Length > 0)
@@ -140,12 +173,41 @@ namespace FlightManagement.Controllers
                 documentInformation.FileName = uploadedFileName;
             }
 
-            _context.DocumentInfo.Add(documentInformation);
+            // Xóa trường "Id" ra khỏi đối tượng để không hiển thị khi tạo mới
+            documentInformation.Id = 0;
+
+            _context.DocumentInfo.AddAsync(documentInformation);
             await _context.SaveChangesAsync();
 
-            return CreatedAtAction("GetDocumentInformation", new { id = documentInformation.Id }, documentInformation);
-        }
+            // Tìm lại đối tượng DocumentInformation sau khi đã lưu vào cơ sở dữ liệu để có ID mới
+            documentInformation = _context.DocumentInfo.Find(documentInformation.Id);
 
+            var documentInfos = _context.DocumentInfo.Include(d => d.AddFlight).ToList();
+
+            if (documentInformation != null)
+            {
+                // Lấy AddFlight cụ thể dựa trên AddFlightId
+                var addFlight = _context.Addflights.Find(documentInformation.Id);
+
+                if (addFlight != null)
+                {
+                    documentInformation.AddFlight = addFlight;
+                    int addFlightId = documentInformation.IdFlight;
+                    // Làm việc với AddFlightDTO ở đây nếu cần
+
+                    return CreatedAtAction(nameof(GetDocumentInfo), new { id = documentInformation.Id }, documentInformation);
+                }
+                else
+                {
+                    return BadRequest("AddFlight with the specified AddFlightId not found.");
+                }
+            }
+            else
+            {
+                return BadRequest("DocumentInformation not found.");
+            }
+
+        }
 
         //DOWLOAD FILES
         [HttpGet]

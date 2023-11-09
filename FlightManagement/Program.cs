@@ -6,6 +6,11 @@ using Microsoft.Extensions.Configuration;
 using FlightManagement.Controllers;
 using System.Configuration;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
+using Swashbuckle.AspNetCore.Filters;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
+using FlightManagement.Models.Management_Flight;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -20,18 +25,32 @@ builder.Services.AddIdentity<IdentityUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDBContext>()
     .AddDefaultTokenProviders();
 
-// Cấu hình xác thực
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
-    options.DefaultScheme = JwtBearerDefaults.AuthenticationScheme;
-});
 
 builder.Services.AddControllers();
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(options =>
+{
+    options.AddSecurityDefinition("TEST", new OpenApiSecurityScheme
+    {
+        In = ParameterLocation.Header, 
+        Name = "Authorization", 
+        Type= SecuritySchemeType.ApiKey
+    });
+    options.OperationFilter<SecurityRequirementsOperationFilter>();
+});
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            ValidateAudience = false,
+            ValidateIssuer = false,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(
+                configuration.GetSection("AppSettings:Token").Value!))
+        };
+    });
 
 var app = builder.Build();
 

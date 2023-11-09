@@ -1,6 +1,7 @@
 ﻿using FlightManagement.Models;
 using FlightManagement.Models.Authentication.Login;
 using FlightManagement.Models.Authentication.Signup;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -31,10 +32,11 @@ namespace FlightManagement.Controllers
         }
 
         [HttpPost]
+        [Route("Register")]
         public async Task<IActionResult> Register([FromForm] RegisterUser registerUser, string role)
         {
             //check user exist
-            var userExist = await _userManager.FindByEmailAsync(registerUser.Email);
+            var userExist = await _userManager.FindByNameAsync(registerUser.Username);
             if (userExist != null)
             {
                 return StatusCode(StatusCodes.Status403Forbidden,
@@ -54,6 +56,7 @@ namespace FlightManagement.Controllers
                 var result = await _userManager.CreateAsync(user, registerUser.Password);
                 if (result.Succeeded)
                 {
+
                     // Tài khoản tạo thành công
                     await _userManager.AddToRoleAsync(user, role);
                     return StatusCode(StatusCodes.Status200OK,
@@ -61,13 +64,12 @@ namespace FlightManagement.Controllers
                 }
                 else
                 {
+
                     // Xử lý lỗi
                     string errors = string.Join(", ", result.Errors.Select(error => error.Description));
                     return StatusCode(StatusCodes.Status500InternalServerError,
-                        new Response { Status = "Error", Message = $"User failed to create. Errors: {errors}" });
+                        new Response { Status = "Error", Message = result.ToString() });
                 }
-
-
             }
             else
             {
@@ -75,54 +77,72 @@ namespace FlightManagement.Controllers
                        new Response { Status = "Error", Message = "This roles doesnot exist." });
             }
 
-            
-            
-            //assign a role 
         }
-        
         [HttpPost]
-        [Route("login")]
+        [Route("Login")]
         public async Task<IActionResult> Login([FromForm] LoginUser loginUser)
         {
-            //checking the user.....
+            // Kiểm tra người dùng
             var user = await _userManager.FindByNameAsync(loginUser.Username);
-            if(user != null && await _userManager.CheckPasswordAsync(user, loginUser.Password))
+            if (user != null && await _userManager.CheckPasswordAsync(user, loginUser.Password))
             {
                 var authClaims = new List<Claim>
-                {
-                    new Claim(ClaimTypes.Name,user.UserName),
-                    new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
-                };
+        {
+            new Claim(ClaimTypes.Name, user.UserName),
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
+        };
 
                 var userRoles = await _userManager.GetRolesAsync(user);
-                foreach(var role in userRoles)
+                foreach (var role in userRoles)
                 {
                     authClaims.Add(new Claim(ClaimTypes.Role, role));
                 }
-                
-                var jwtToken = GetToken(authClaims);
 
-                return Ok(new
-                {
-                    token = new JwtSecurityTokenHandler().WriteToken(jwtToken),
-                    expiration = jwtToken.ValidTo
-                });
+                var jwtToken = CreateToken(authClaims);
+
+                return Ok(jwtToken); // Trả về chuỗi JWT
             }
             return Unauthorized();
-         
         }
-        
-        private JwtSecurityToken GetToken(List<Claim> authClaims)
+
+        private string CreateToken(List<Claim> authClaims)
         {
-            var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration["JWT:Secret"]));
+            var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:Token").Value!));
 
             var token = new JwtSecurityToken(
-                issuer: _configuration["JWT:ValidIssuer"],
-                audience: _configuration["JWT:ValidAudience"],
-                expires: DateTime.Now.AddHours(1),
+                expires: DateTime.Now.AddHours(2),
                 claims: authClaims,
-                signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha256));
-            return token;
+                signingCredentials: new SigningCredentials(authSigningKey, SecurityAlgorithms.HmacSha512Signature)
+            );
+
+            return new JwtSecurityTokenHandler().WriteToken(token);
+        }
+
+
+
+        [HttpPost]
+        [Route("Change-password")]
+        public async Task<IActionResult> ChangePassword([FromBody] ChangePassword changePassword)
+        {
+            var user = await _userManager.FindByNameAsync(changePassword.Username);
+            if (user == null)
+                return StatusCode(StatusCodes.Status404NotFound, new Response { Status = "Error", Message = "User does not exist!!!"});
+            if (string.Compare(changePassword.NewPassword, changePassword.ConfirmNewPassword) != 0)
+                return StatusCode(StatusCodes.Status400BadRequest, new Response { Status = "Error", Message = "The new password and comfirm new password does not match!!!" });
+            var result = await _userManager.ChangePasswordAsync(user,changePassword.CurrentPassword,changePassword.NewPassword);
+            if (!result.Succeeded)
+            {
+                var errors = new List<string>();
+                
+                foreach(var error in result.Errors)
+                {
+                    errors.Add(error.Description);
+                }
+                return StatusCode(StatusCodes.Status500InternalServerError, new Response { Status = "Error", Message = string.Join(",", errors)});
+            }
+            return Ok(new Response { Status="Success", Message="Password successfully changed."});
+
+
         }
 
 

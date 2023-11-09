@@ -27,22 +27,26 @@ namespace FlightManagement.Migrations
                     b.Property<string>("Username")
                         .HasColumnType("nvarchar(450)");
 
+                    b.Property<int?>("GroupsGroupId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Password")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Username");
 
-                    b.ToTable("LoginUser");
+                    b.HasIndex("GroupsGroupId");
+
+                    b.ToTable("Login");
                 });
 
             modelBuilder.Entity("FlightManagement.Models.Management_Flight.AddFlight", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("FlightId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("FlightId"), 1L, 1);
 
                     b.Property<DateTime?>("Date")
                         .IsRequired()
@@ -60,7 +64,7 @@ namespace FlightManagement.Migrations
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
-                    b.HasKey("Id");
+                    b.HasKey("FlightId");
 
                     b.ToTable("AddFlight");
                 });
@@ -68,10 +72,7 @@ namespace FlightManagement.Migrations
             modelBuilder.Entity("FlightManagement.Models.Management_Flight.DocumentInformation", b =>
                 {
                     b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
 
                     b.Property<string>("Documentname")
                         .HasColumnType("nvarchar(max)");
@@ -85,48 +86,48 @@ namespace FlightManagement.Migrations
                     b.Property<string>("FileName")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<int?>("GroupsGroupId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("IdFlight")
+                        .HasColumnType("int");
+
                     b.Property<string>("Note")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("RoleId")
-                        .HasColumnType("nvarchar(450)");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("RoleId");
+                    b.HasIndex("GroupsGroupId");
 
                     b.ToTable("DocumentInfo");
                 });
 
-            modelBuilder.Entity("FlightManagement.Models.Management_Flight.Permission", b =>
+            modelBuilder.Entity("FlightManagement.Models.Management_Flight.Groups", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("GroupId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("GroupId"), 1L, 1);
 
-                    b.Property<DateTime?>("CreateDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatorUsername")
-                        .HasColumnType("nvarchar(450)");
+                    b.Property<string>("Creator")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("GroupName")
                         .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                        .HasColumnType("nvarchar(max)")
+                        .HasAnnotation("ErrorMessage", "GroupName must be 'pilot' or 'crew")
+                        .HasAnnotation("RegularExpression", "^(pilot|crew)$");
 
-                    b.Property<int?>("Members")
+                    b.Property<int?>("Member")
                         .HasColumnType("int");
 
-                    b.Property<string>("Note")
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<int?>("Permissions")
+                        .HasColumnType("int");
 
-                    b.HasKey("Id");
+                    b.HasKey("GroupId");
 
-                    b.HasIndex("CreatorUsername");
-
-                    b.ToTable("Permission");
+                    b.ToTable("Group", (string)null);
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -158,28 +159,28 @@ namespace FlightManagement.Migrations
                     b.HasData(
                         new
                         {
-                            Id = "c9ed6047-952d-4ef6-a5e6-54ce8e757ac9",
+                            Id = "1",
                             ConcurrencyStamp = "1",
                             Name = "Admin",
                             NormalizedName = "Admin"
                         },
                         new
                         {
-                            Id = "dd1723d3-a5e0-4d26-9989-fec4b34932ef",
+                            Id = "2",
                             ConcurrencyStamp = "2",
                             Name = "Employee",
                             NormalizedName = "Employee"
                         },
                         new
                         {
-                            Id = "b34177b1-e223-4f52-b4b9-b73cc6db93fb",
+                            Id = "3",
                             ConcurrencyStamp = "3",
                             Name = "Pilot",
                             NormalizedName = "Pilot"
                         },
                         new
                         {
-                            Id = "baad14b1-6f34-404b-adca-cde26dec4d6e",
+                            Id = "4",
                             ConcurrencyStamp = "4",
                             Name = "Crew",
                             NormalizedName = "Crew"
@@ -357,22 +358,28 @@ namespace FlightManagement.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("FlightManagement.Models.Management_Flight.DocumentInformation", b =>
+            modelBuilder.Entity("FlightManagement.Models.Authentication.Login.LoginUser", b =>
                 {
-                    b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", "Role")
-                        .WithMany()
-                        .HasForeignKey("RoleId");
-
-                    b.Navigation("Role");
+                    b.HasOne("FlightManagement.Models.Management_Flight.Groups", null)
+                        .WithMany("Members")
+                        .HasForeignKey("GroupsGroupId");
                 });
 
-            modelBuilder.Entity("FlightManagement.Models.Management_Flight.Permission", b =>
+            modelBuilder.Entity("FlightManagement.Models.Management_Flight.DocumentInformation", b =>
                 {
-                    b.HasOne("FlightManagement.Models.Authentication.Login.LoginUser", "Creator")
+                    b.HasOne("FlightManagement.Models.Management_Flight.Groups", "Groups")
                         .WithMany()
-                        .HasForeignKey("CreatorUsername");
+                        .HasForeignKey("GroupsGroupId");
 
-                    b.Navigation("Creator");
+                    b.HasOne("FlightManagement.Models.Management_Flight.AddFlight", "AddFlight")
+                        .WithMany("DocumentInformation")
+                        .HasForeignKey("Id")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("AddFlight");
+
+                    b.Navigation("Groups");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -424,6 +431,16 @@ namespace FlightManagement.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("FlightManagement.Models.Management_Flight.AddFlight", b =>
+                {
+                    b.Navigation("DocumentInformation");
+                });
+
+            modelBuilder.Entity("FlightManagement.Models.Management_Flight.Groups", b =>
+                {
+                    b.Navigation("Members");
                 });
 #pragma warning restore 612, 618
         }
