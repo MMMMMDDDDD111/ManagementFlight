@@ -86,7 +86,7 @@ namespace FlightManagement.Migrations
                     b.Property<string>("FileName")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<int?>("GroupsGroupId")
+                    b.Property<int>("GroupId")
                         .HasColumnType("int");
 
                     b.Property<int>("IdFlight")
@@ -97,7 +97,7 @@ namespace FlightManagement.Migrations
 
                     b.HasKey("Id");
 
-                    b.HasIndex("GroupsGroupId");
+                    b.HasIndex("GroupId");
 
                     b.ToTable("DocumentInfo");
                 });
@@ -369,7 +369,9 @@ namespace FlightManagement.Migrations
                 {
                     b.HasOne("FlightManagement.Models.Management_Flight.Groups", "Groups")
                         .WithMany()
-                        .HasForeignKey("GroupsGroupId");
+                        .HasForeignKey("GroupId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
 
                     b.HasOne("FlightManagement.Models.Management_Flight.AddFlight", "AddFlight")
                         .WithMany("DocumentInformation")

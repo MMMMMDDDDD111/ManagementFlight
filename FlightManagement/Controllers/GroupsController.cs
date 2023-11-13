@@ -8,6 +8,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Text.RegularExpressions;
 using X.PagedList;
 using static FlightManagement.Controllers.AddFlightsController;
+using static FlightManagement.NewFolder.EnumExtensions;
 
 // For more information on enabling Web API for empty projects, visit https://go.microsoft.com/fwlink/?LinkID=397860
 
@@ -19,14 +20,15 @@ namespace FlightManagement.Controllers
     {
         private readonly ApplicationDBContext _context;
         private readonly LoginUser loginUser;
+        private readonly DocumentInformation documentInformation;
 
         public class GroupDto
         {
-            public string GroupName { get; set; }
+            public string? GroupName { get; set; }
             public int? Member { get; set; }
-            public int? Permissions { get; set; }
+            public Permission? Permissions { get; set; }
             public string? Creator { get; set; }
-            public List<string> SelectedUsernames { get; set; }
+            public List<string>? SelectedUsernames { get; set; }
         }
 
 
@@ -49,7 +51,7 @@ namespace FlightManagement.Controllers
             {
                 GroupName = group.GroupName,
                 Member = group.Member,
-                Permissions = (int?)group.Permissions,
+                Permissions = group.Permissions,
                 Creator = group.Creator,
 
             }).ToList();
@@ -81,19 +83,19 @@ namespace FlightManagement.Controllers
         }
 
         [HttpPost]
-        public async Task<ActionResult> CreateGroup([FromForm] GroupDto model)
+        public Task<ActionResult> CreateGroup([FromForm] GroupDto model)
         {
             if (ModelState.IsValid)
             {
                 if (model.SelectedUsernames == null || !model.SelectedUsernames.Any())
                 {
-                    return BadRequest("Please select at least one member.");
+                    return Task.FromResult<ActionResult>(BadRequest("Please select at least one member."));
                 }
 
                 var group = new Groups
                 {
                     GroupName = model.GroupName,
-                    Permissions = (NewFolder.EnumExtensions.Permission?)model.Permissions,
+                    Permissions = model.Permissions,
                     Member = model.Member,
                     Creator = model.Creator,
                     Members = new List<LoginUser>()
@@ -111,14 +113,28 @@ namespace FlightManagement.Controllers
                 _context.Group.Add(group);
                 _context.SaveChanges();
 
-                return CreatedAtAction(nameof(GetAll), new { id = group.GroupId }, group);
+                // Create a DocumentInformation associated with the created group
+                var documentInfo = new DocumentInformation
+                {
+                    Documentname = "YourDocumentName", 
+                    Documenttype = "YourDocumentType", 
+                    Documentversion = "YourDocumentVersion", 
+                    Note = "YourNote", 
+                    FileName = "YourFileName", 
+                    IdFlight = group.GroupId, 
+                    AddFlight = null, 
+                    Groups = group 
+                };
+
+                _context.DocumentInfo.Add(documentInfo);
+                _context.SaveChanges();
+
+                return Task.FromResult<ActionResult>(CreatedAtAction(nameof(GetAll), new { id = group.GroupId }, group));
             }
 
-            return BadRequest("Invalid model data.");
+            return Task.FromResult<ActionResult>(BadRequest("Invalid model data."));
         }
-
-
-
+      
         [HttpGet("SearchGroupsByName")]
         public async Task<ActionResult<IEnumerable<Groups>>> SearchGroupsByName(string groupName)
         {

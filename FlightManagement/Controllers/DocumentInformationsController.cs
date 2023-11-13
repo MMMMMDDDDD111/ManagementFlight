@@ -27,6 +27,7 @@ namespace FlightManagement.Controllers
         private readonly ApplicationDBContext _context;
 
         private readonly RoleManager<IdentityRole> _roleManager;
+        private readonly ILogger<DocumentInformationsController> _logger;
 
         public DocumentInformationsController(ApplicationDBContext context, RoleManager<IdentityRole> roleManager)
         {
@@ -156,7 +157,7 @@ namespace FlightManagement.Controllers
             }
             return filename;
         }
-  
+
         [HttpPost]
         public async Task<ActionResult<DocumentInformation>> PostDocumentInformation([FromForm] DocumentInformation documentInformation, IFormFile file)
         {
@@ -172,6 +173,9 @@ namespace FlightManagement.Controllers
                 var uploadedFileName = await Writefile(file);
                 documentInformation.FileName = uploadedFileName;
             }
+
+            // Increment the version
+            documentInformation.Documentversion = IncrementVersion(documentInformation.Documentversion);
 
             // Xóa trường "Id" ra khỏi đối tượng để không hiển thị khi tạo mới
             documentInformation.Id = 0;
@@ -193,7 +197,6 @@ namespace FlightManagement.Controllers
                 {
                     documentInformation.AddFlight = addFlight;
                     int addFlightId = documentInformation.IdFlight;
-                    // Làm việc với AddFlightDTO ở đây nếu cần
 
                     return CreatedAtAction(nameof(GetDocumentInfo), new { id = documentInformation.Id }, documentInformation);
                 }
@@ -206,8 +209,22 @@ namespace FlightManagement.Controllers
             {
                 return BadRequest("DocumentInformation not found.");
             }
-
         }
+        private string IncrementVersion(string currentVersion)
+        {
+            if (currentVersion == "1.0")
+            {
+                return currentVersion;
+            }
+            var parts = currentVersion.Split('.');
+            if (parts.Length == 2 && int.TryParse(parts[1], out int minorVersion))
+            {
+                return $"{parts[0]}.{minorVersion + 1}";
+            }
+
+            return currentVersion;
+        }
+
 
         //DOWLOAD FILES
         [HttpGet]
@@ -248,5 +265,6 @@ namespace FlightManagement.Controllers
         {
             return (_context.DocumentInfo?.Any(e => e.Id == id)).GetValueOrDefault();
         }
+
     }
 }

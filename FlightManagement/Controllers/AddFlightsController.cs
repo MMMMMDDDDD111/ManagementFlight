@@ -32,18 +32,17 @@ namespace FlightManagement.Controllers
                 return NotFound();
             }
 
-            // Tạo danh sách mới chứa thông tin bạn cần
             var results = addflights.Select(addflight => new
             {
-                Flightno = addflight.Flightno,
-                Date = addflight.Date,
+                FlightNo = addflight.Flightno,
+                date = addflight.Date,
                 Pointofloading = addflight.Pointofloding,
-                Pointofunloading = addflight.Pointofunloading,
+                Pointofunloding = addflight.Pointofunloading,
                 DocumentInformation = new
                 {
-                    DocumentName = addflight.DocumentInformation.Select(di => di.Documentname).FirstOrDefault(),
-                    DocumentType = addflight.DocumentInformation.Select(di => di.Documenttype).FirstOrDefault(),
-                    DocumentVersion = addflight.DocumentInformation.Select(di => di.Documentversion).FirstOrDefault()
+                    DocumentName = addflight.DocumentInformation?.Select(di => di.Documentname).FirstOrDefault(),
+                    DocumentType = addflight.DocumentInformation?.Select(di => di.Documenttype).FirstOrDefault(),
+                    DocumentVersion = addflight.DocumentInformation?.Select(di => di.Documentversion).FirstOrDefault()
                 }
             });
 
@@ -76,17 +75,13 @@ namespace FlightManagement.Controllers
             {
                 return BadRequest("Invalid data in the request.");
             }
-
-
             // Lấy Id của AddFlight sau khi đã thêm vào cơ sở dữ liệu
             int addFlightId = addflight.FlightId;
-            DocumentInformation firstDocument = null;
+            DocumentInformation? firstDocument = null;
             if (addflight.DocumentInformation != null && addflight.DocumentInformation.Any())
             {
                 firstDocument = addflight.DocumentInformation.First();
             }
-
-
             // Tạo đối tượng AddFlightDTO từ addFlight
             var addFlightDTO = new AddFlightDTO
             {

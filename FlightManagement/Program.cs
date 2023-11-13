@@ -14,7 +14,7 @@ using FlightManagement.Models.Management_Flight;
 
 var builder = WebApplication.CreateBuilder(args);
 
-//for Entity framework 
+//for Entity framework   
 var configuration = builder.Configuration;
 // Cấu hình ApplicationDBContext
 builder.Services.AddDbContext<ApplicationDBContext>(options =>

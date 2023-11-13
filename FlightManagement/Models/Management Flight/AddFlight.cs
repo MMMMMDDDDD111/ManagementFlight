@@ -29,6 +29,7 @@ namespace FlightManagement.Models.Management_Flight
         public string? Pointofloding { get; set; }
         [Required]
         public string? Pointofunloading { get; set; }
+
         public ICollection<DocumentInformation>? DocumentInformation { get; set; }
     }
 
@@ -38,14 +39,16 @@ namespace FlightManagement.Models.Management_Flight
         public int Id { get; set; }
         public string? Documentname { get; set; }
         public string? Documenttype { get; set; }
-        public string? Documentversion { get; set; } = string.Empty;
+        public string? Documentversion { get; set; } = "1.0";
         public string? Note { get; set; }
         public string? FileName { get; set; }
         [ForeignKey("AddFlightId")]
         public int IdFlight { get; set; }
         [JsonIgnore]
         public AddFlight? AddFlight { get; set; }
-        public virtual Groups? Groups { get; set; } 
+        [ForeignKey("Groups")]
+        public int GroupId { get; set; }
+        public Groups Groups { get; set; }
     }
   
     [Table("Group")]

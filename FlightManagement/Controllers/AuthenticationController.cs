@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
+using System;
 using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
@@ -100,11 +101,10 @@ namespace FlightManagement.Controllers
 
                 var jwtToken = CreateToken(authClaims);
 
-                return Ok(jwtToken); // Trả về chuỗi JWT
+                return Ok(jwtToken); 
             }
             return Unauthorized();
         }
-
         private string CreateToken(List<Claim> authClaims)
         {
             var authSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(_configuration.GetSection("AppSettings:Token").Value!));
@@ -118,11 +118,9 @@ namespace FlightManagement.Controllers
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
 
-
-
         [HttpPost]
         [Route("Change-password")]
-        public async Task<IActionResult> ChangePassword([FromBody] ChangePassword changePassword)
+        public async Task<IActionResult> ChangePassword([FromForm] ChangePassword changePassword)
         {
             var user = await _userManager.FindByNameAsync(changePassword.Username);
             if (user == null)
@@ -142,7 +140,83 @@ namespace FlightManagement.Controllers
             }
             return Ok(new Response { Status="Success", Message="Password successfully changed."});
 
+        }
+        [HttpPost("Reset-password")]
+        public async Task<IActionResult> ResetPassword([FromForm] ResetPassword resetPassword)
+        {
+            try
+            {
+                if (resetPassword == null || string.IsNullOrEmpty(resetPassword.Username) || string.IsNullOrEmpty(resetPassword.Resetpassword))
+                {
+                    return BadRequest("Invalid reset password request.");
+                }
 
+                var user = await _userManager.FindByNameAsync(resetPassword.Username) ?? await _userManager.FindByEmailAsync(resetPassword.Username);
+
+                if (user == null)
+                {
+                    return NotFound("User not found.");
+                }
+                var resetToken = await _userManager.GeneratePasswordResetTokenAsync(user);
+                var resetResult = await _userManager.ResetPasswordAsync(user, resetToken, resetPassword.Resetpassword);
+
+                if (resetResult.Succeeded)
+                {
+                    return Ok("Password reset successfully.");
+                }
+                else
+                {
+                    var errors = string.Join(", ", resetResult.Errors.Select(error => error.Description));
+                    return BadRequest($"Password reset failed. Errors: {errors}");
+                }
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred: {ex.Message}");
+            }
+        }
+        [HttpPost("Profile")]
+        public async Task<IActionResult> Profile([FromForm] Profile profile)
+        {
+            if (profile.Image != null && profile.Image.Length > 0)
+            {
+                try
+                {
+                    // Kiểm tra đuôi của tệp
+                    var allowedExtensions = new[] { ".png", ".jpg", ".jpeg" };
+                    var fileExtension = Path.GetExtension(profile.Image.FileName).ToLower();
+
+                    if (!allowedExtensions.Contains(fileExtension))
+                    {
+                        return BadRequest("Only .png, .jpg, and .jpeg files are allowed.");
+                    }
+
+                    var uniqueFileName = Guid.NewGuid().ToString() + "_" + profile.Image.FileName;
+
+                    var uploads = Path.Combine(Directory.GetCurrentDirectory(), "Upload\\Image");
+
+                    // Đảm bảo thư mục tồn tại
+                    if (!Directory.Exists(uploads))
+                    {
+                        Directory.CreateDirectory(uploads);
+                    }
+
+                    var filePath = Path.Combine(uploads, uniqueFileName);
+
+                    using (var fileStream = new FileStream(filePath, FileMode.Create))
+                    {
+                        await profile.Image.CopyToAsync(fileStream);
+                    }
+
+                    return Ok("Create Profile Successfully");
+                }
+                catch (Exception ex)
+                {
+                    return StatusCode(StatusCodes.Status500InternalServerError, $"An error occurred while saving the image: {ex.Message}");
+                }
+            }
+
+            return BadRequest("No image provided.");
         }
 
 

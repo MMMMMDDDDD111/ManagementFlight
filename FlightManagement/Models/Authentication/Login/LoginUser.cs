@@ -25,4 +25,18 @@ namespace FlightManagement.Models.Authentication.Login
         [Required(ErrorMessage = "Comfirm new password is required")]
         public string? ConfirmNewPassword { get; set; }
     }
+    public class ResetPassword
+    {
+        public string? Username { get; set; }
+        public string? Resetpassword { get; set; }
+    }
+    public class Profile 
+    {
+        public string? Fullname { get; set; }
+        public string? Email { get; set; }
+        public int? PhoneNumber { get; set; }
+        public int? Address { get; set; }
+        public IFormFile? Image { get; set; }
+    }
+
 }

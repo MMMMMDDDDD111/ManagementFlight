@@ -38,6 +38,11 @@ namespace FlightManagement.Models
          .WithOne(di => di.AddFlight)
          .HasForeignKey(di => di.Id);
 
+        builder.Entity<AddFlight>()
+          .HasMany(addFlight => addFlight.DocumentInformation)
+          .WithOne(document => document.AddFlight)
+          .HasForeignKey(document => document.IdFlight);
+
 
             builder.Entity<Groups>(entity =>
             {
