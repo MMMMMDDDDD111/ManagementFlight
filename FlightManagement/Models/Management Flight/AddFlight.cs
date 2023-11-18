@@ -4,6 +4,7 @@ using FlightManagement.NewFolder;
 using MessagePack;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Build.Framework;
+using Microsoft.EntityFrameworkCore;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -29,9 +30,9 @@ namespace FlightManagement.Models.Management_Flight
         public string? Pointofloding { get; set; }
         [Required]
         public string? Pointofunloading { get; set; }
-
         public ICollection<DocumentInformation>? DocumentInformation { get; set; }
     }
+
 
     [Table("DocumentInfo")]
     public class DocumentInformation
@@ -46,11 +47,14 @@ namespace FlightManagement.Models.Management_Flight
         public int IdFlight { get; set; }
         [JsonIgnore]
         public AddFlight? AddFlight { get; set; }
+        public string? Status { get; set; }
         [ForeignKey("Groups")]
         public int GroupId { get; set; }
         public Groups Groups { get; set; }
+        public string? Creator { get; set; }
+        public DateTime? UpdateDate { get; set; }
     }
-  
+
     [Table("Group")]
     public class Groups
     {
@@ -65,6 +69,93 @@ namespace FlightManagement.Models.Management_Flight
         public string? Creator { get; set; }
         public ICollection<LoginUser>? Members { get; set; }
     }
+
+    public class AddFlightDTO
+    {
+        public int FlightId { get; set; }
+        public string FlightNo { get; set; }
+        public DateTime? Date { get; set; }
+        public string Route { get; set; }
+        public int? TotalDocument { get; set; }
+        public List<DocumentDTO> Documents { get; set; } = new List<DocumentDTO>();
+    }
+
+    public class DocumentDTO
+    {
+        public string DocumentName { get; set; }
+        public string DocumentType { get; set; }
+        public DateTime? CreateDate { get; set; }
+        public string Creator { get; set; }
+        public string DocumentVersion { get; set; }
+    }
+    public class DocumentInfoDTO
+    {
+        public int IdFlight { get; set; }
+        public int GroupId { get; set; }
+        public string DocumentName { get; set; }
+        public string DocumentType { get; set; }
+        public string DocumentVersion { get; set; }
+        public string FileName { get; set; }
+        public Permission Permission { get; set; }
+    }
+    
+    public class DocsList
+    {
+        public string DocumentName { get; set; }
+        public string Type { get; set; }
+        public DateTime CreateDate { get; set; }
+        public string Creator { get; set; }
+        public string FlightNO { get; set; }
+    }
+
+    public class FlightDTO
+    {
+        public int FlightId { get; set; }
+        [Required]
+        public string? Flightno { get; set; }
+        [Required]
+        public DateTime? Date { get; set; }
+        [Required]
+        public string? Pointofloding { get; set; }
+        [Required]
+        public string? Pointofunloading { get; set; }
+        public List<DocumentInfoDTO> DocumentInformation { get; set; }
+    }   
+    public class GroupDto
+    {
+        public int GroupId { get; set; }
+        public string? GroupName { get; set; }
+        public int? Member { get; set; }
+        public Permission? Permissions { get; set; }
+        public string? Creator { get; set; }
+        public List<string>? Usernames { get; set; }
+    }
+    public class RecentlyActivityDTO
+    {
+        public string DocumentName { get; set; }
+        public string DocumentType { get; set; }
+        public string FlightNo { get; set; }
+        public DateTime DepartureDate { get; set; }
+        public string Creator { get; set; }
+        public DateTime UpdateDate { get; set; }
+    }
+
+    public class CurrentFlightDTO
+    {
+        public int FlightId { get; set; }
+        public DateTime DepartureTime { get; set; }
+        public DateTime ArrivalTime { get; set; }
+        public List<DocumentInfoDTO> SentFiles { get; set; }
+        public List<DocumentInfoDTO> ReturnedFiles { get; set; }
+    }
+
+    public class DashboardDTO
+    {
+        public List<RecentlyActivityDTO> RecentlyActivities { get; set; }
+        public List<CurrentFlightDTO> CurrentFlights { get; set; }
+    }
+
+
 }
 
 

@@ -22,16 +22,6 @@ namespace FlightManagement.Controllers
         private readonly LoginUser loginUser;
         private readonly DocumentInformation documentInformation;
 
-        public class GroupDto
-        {
-            public string? GroupName { get; set; }
-            public int? Member { get; set; }
-            public Permission? Permissions { get; set; }
-            public string? Creator { get; set; }
-            public List<string>? SelectedUsernames { get; set; }
-        }
-
-
         public GroupsController(ApplicationDBContext context) => _context = context;
         // GET: api/<GroupsController>
         [HttpGet]
@@ -72,6 +62,7 @@ namespace FlightManagement.Controllers
     
             var group = new Groups
             {
+                
                 GroupName = dto.GroupName,
                 Permissions = dto.Permissions,  
                 Member = dto.Member,
@@ -87,13 +78,14 @@ namespace FlightManagement.Controllers
         {
             if (ModelState.IsValid)
             {
-                if (model.SelectedUsernames == null || !model.SelectedUsernames.Any())
+                if (model.Usernames == null || !model.Usernames.Any())
                 {
                     return Task.FromResult<ActionResult>(BadRequest("Please select at least one member."));
                 }
 
                 var group = new Groups
                 {
+                    GroupId = model.GroupId,
                     GroupName = model.GroupName,
                     Permissions = model.Permissions,
                     Member = model.Member,
@@ -101,7 +93,7 @@ namespace FlightManagement.Controllers
                     Members = new List<LoginUser>()
                 };
 
-                foreach (var username in model.SelectedUsernames)
+                foreach (var username in model.Usernames)
                 {
                     var user = _context.loginUsers.FirstOrDefault(u => u.Username == username);
                     if (user != null)

@@ -16,6 +16,7 @@ using FlightManagement.NewFolder;
 using static FlightManagement.NewFolder.EnumExtensions;
 using X.PagedList;
 using static FlightManagement.Controllers.GroupsController;
+using Elasticsearch.Net;
 
 namespace FlightManagement.Controllers
 {
@@ -36,7 +37,7 @@ namespace FlightManagement.Controllers
         }
 
         // GET: api/DocumentInformations
-        [HttpGet]
+        [HttpGet("Docs-List")]
         public async Task<IActionResult> GetDocumentInfo(int? page)
         {
             if (_context.DocumentInfo == null)
@@ -46,60 +47,38 @@ namespace FlightManagement.Controllers
 
             var documentInfos = _context.DocumentInfo.Include(d => d.AddFlight).ToList();
 
-            int pageSize = 3; 
-
+            int pageSize = 3;
             int pageNumber = page ?? 1;
 
             var pagedDocumentInfos = documentInfos.ToPagedList(pageNumber, pageSize);
 
-            return new JsonResult(new { Data = pagedDocumentInfos });
+            // Chuyển đổi danh sách DocumentInformation thành danh sách DocsList
+            var docsList = new List<DocsList>();
+
+            foreach (var documentInfo in pagedDocumentInfos)
+            {
+                var group = _context.Group.Find(documentInfo.GroupId);
+                var docsListItem = new DocsList
+                {
+                    DocumentName = documentInfo.Documentname,
+                    Type = documentInfo.Documenttype,
+                    CreateDate = documentInfo.UpdateDate ?? DateTime.MinValue,
+                    FlightNO = documentInfo.AddFlight?.Flightno ?? string.Empty
+                };
+
+                // Kiểm tra xem documentInfo có GroupId và Group tồn tại không
+                if (group != null)
+                {
+                    docsListItem.Creator = group.Creator;
+                }
+
+                docsList.Add(docsListItem);
+            }
+
+            return new JsonResult(new { Data = docsList });
         }
 
-
-
-        // GET: api/DocumentInformations/5
-        [HttpGet("{id}")]
-        public async Task<ActionResult<DocumentInformation>> GetDocumentInformation(int id)
-        {
-          if (_context.DocumentInfo == null)
-          {
-              return NotFound();
-          }
-            var documentInformation = await _context.DocumentInfo.FindAsync(id);
-
-            if (documentInformation == null)
-            {
-                return NotFound();
-            }
-
-            return documentInformation;
-        }
-
-        [HttpGet("SearchByGroupNameAndFlight")]
-        public async Task<ActionResult<IEnumerable<DocumentInformation>>> SearchDocumentsByGroupNameAndFlight(string groupName, int idFlight)
-        {
-            if (string.IsNullOrWhiteSpace(groupName))
-            {
-                return BadRequest("Group name cannot be empty.");
-            }
-
-            if (idFlight <= 0)
-            {
-                return BadRequest("IdFlight must be a positive integer.");
-            }
-
-            // Tìm tài liệu (DocumentInformation) dựa trên tên nhóm (GroupName) và IdFlight tương ứng trong tài liệu
-            var documents = await _context.DocumentInfo
-                .Where(d => d.Groups != null && d.Groups.GroupName == groupName && d.IdFlight == idFlight)
-                .ToListAsync();
-
-            if (documents == null || !documents.Any())
-            {
-                return NotFound("No documents found for the provided group name and IdFlight.");
-            }
-
-            return documents;
-        }
+       
 
 
         // PUT: api/DocumentInformations/5
@@ -157,57 +136,63 @@ namespace FlightManagement.Controllers
             }
             return filename;
         }
-
         [HttpPost]
-        public async Task<ActionResult<DocumentInformation>> PostDocumentInformation([FromForm] DocumentInformation documentInformation, IFormFile file)
+        public async Task<ActionResult<DocumentInformation>> PostDocumentInformation([FromForm] DocumentInfoDTO requestDTO, IFormFile file)
         {
             if (_context.DocumentInfo == null)
             {
                 return Problem("Entity set 'ApplicationDBContext.DocumentInfo' is null.");
             }
+            var user = HttpContext.User;
 
-            // Kiểm tra xem có tệp tải lên không
-            if (file != null && file.Length > 0)
+
+            var documentInformation = new DocumentInformation
             {
-                // Lưu tên tệp và lấy đường dẫn
-                var uploadedFileName = await Writefile(file);
-                documentInformation.FileName = uploadedFileName;
-            }
+                Documentname = requestDTO.DocumentName,
+                Documenttype = requestDTO.DocumentType,
+                Documentversion = requestDTO.DocumentVersion,
+                Note = "",
+                FileName = requestDTO.FileName,
+                Status = "",
+                IdFlight = requestDTO.IdFlight,  
+            };
 
-            // Increment the version
-            documentInformation.Documentversion = IncrementVersion(documentInformation.Documentversion);
+            // Kiểm tra xem IdFlight có tồn tại trong bảng AddFlight không
+            var addFlight = _context.Addflights.Find(requestDTO.IdFlight);
 
-            // Xóa trường "Id" ra khỏi đối tượng để không hiển thị khi tạo mới
-            documentInformation.Id = 0;
-
-            _context.DocumentInfo.AddAsync(documentInformation);
-            await _context.SaveChangesAsync();
-
-            // Tìm lại đối tượng DocumentInformation sau khi đã lưu vào cơ sở dữ liệu để có ID mới
-            documentInformation = _context.DocumentInfo.Find(documentInformation.Id);
-
-            var documentInfos = _context.DocumentInfo.Include(d => d.AddFlight).ToList();
-
-            if (documentInformation != null)
+            if (addFlight != null)
             {
-                // Lấy AddFlight cụ thể dựa trên AddFlightId
-                var addFlight = _context.Addflights.Find(documentInformation.Id);
+                // Kiểm tra giá trị của IdFlight
+                documentInformation.IdFlight = addFlight.FlightId;
 
-                if (addFlight != null)
+                // Kiểm tra xem DocumentInformation có thể tự động thêm vào AddFlight không
+                if (addFlight.DocumentInformation == null)
                 {
-                    documentInformation.AddFlight = addFlight;
-                    int addFlightId = documentInformation.IdFlight;
+                    addFlight.DocumentInformation = new List<DocumentInformation>();
+                }
 
-                    return CreatedAtAction(nameof(GetDocumentInfo), new { id = documentInformation.Id }, documentInformation);
+                // Kiểm tra xem GroupId có tồn tại trong bảng Group không
+                var group = _context.Group.Find(requestDTO.GroupId);
+
+                if (group != null)
+                {
+                    documentInformation.GroupId = group.GroupId;
                 }
                 else
                 {
-                    return BadRequest("AddFlight with the specified AddFlightId not found.");
+                    return BadRequest("Group with the specified GroupId not found.");
                 }
+
+                addFlight.DocumentInformation.Add(documentInformation);
+
+                // Lưu lại thay đổi trong cả hai bảng
+                await _context.SaveChangesAsync();
+
+                return CreatedAtAction(nameof(GetDocumentInfo), new { id = documentInformation.Id }, documentInformation);
             }
             else
             {
-                return BadRequest("DocumentInformation not found.");
+                return BadRequest("AddFlight with the specified FlightId not found.");
             }
         }
         private string IncrementVersion(string currentVersion)

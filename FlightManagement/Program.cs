@@ -11,6 +11,7 @@ using Swashbuckle.AspNetCore.Filters;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using FlightManagement.Models.Management_Flight;
+using FlightManagement;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -64,6 +65,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 
 app.UseRouting();
+
 
 app.UseAuthorization();
 

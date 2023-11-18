@@ -72,7 +72,13 @@ namespace FlightManagement.Migrations
             modelBuilder.Entity("FlightManagement.Models.Management_Flight.DocumentInformation", b =>
                 {
                     b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<string>("Creator")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Documentname")
                         .HasColumnType("nvarchar(max)");
@@ -95,9 +101,17 @@ namespace FlightManagement.Migrations
                     b.Property<string>("Note")
                         .HasColumnType("nvarchar(max)");
 
+                    b.Property<string>("Status")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
                     b.HasKey("Id");
 
                     b.HasIndex("GroupId");
+
+                    b.HasIndex("IdFlight");
 
                     b.ToTable("DocumentInfo");
                 });
@@ -375,7 +389,7 @@ namespace FlightManagement.Migrations
 
                     b.HasOne("FlightManagement.Models.Management_Flight.AddFlight", "AddFlight")
                         .WithMany("DocumentInformation")
-                        .HasForeignKey("Id")
+                        .HasForeignKey("IdFlight")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 

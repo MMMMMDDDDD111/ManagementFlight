@@ -2,6 +2,7 @@
 using FlightManagement.Models.Management_Flight;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
+using Microsoft.CodeAnalysis;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection.Emit;
 using static FlightManagement.Controllers.GroupsController;
@@ -22,13 +23,14 @@ namespace FlightManagement.Models
     public DbSet<DocumentInformation> DocumentInfo { get; set; }
     public DbSet<Groups> Group { get; set; }
     public DbSet<LoginUser> loginUsers { get; set; }
-  
+
 
         protected override void OnModelCreating(ModelBuilder builder)
     {
         base.OnModelCreating(builder);
 
-        SeedRoles(builder);
+
+            SeedRoles(builder);
         builder.Entity<AddFlight>()
         .Property(a => a.Date)
         .HasColumnType("date");
@@ -42,6 +44,12 @@ namespace FlightManagement.Models
           .HasMany(addFlight => addFlight.DocumentInformation)
           .WithOne(document => document.AddFlight)
           .HasForeignKey(document => document.IdFlight);
+
+         builder.Entity<DocumentInformation>()
+            .HasOne(d => d.AddFlight)
+            .WithMany(af => af.DocumentInformation)
+            .HasForeignKey(d => d.IdFlight)
+            .OnDelete(DeleteBehavior.Cascade);
 
 
             builder.Entity<Groups>(entity =>
