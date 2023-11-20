@@ -143,8 +143,6 @@ namespace FlightManagement.Controllers
             {
                 return Problem("Entity set 'ApplicationDBContext.DocumentInfo' is null.");
             }
-            var user = HttpContext.User;
-
 
             var documentInformation = new DocumentInformation
             {

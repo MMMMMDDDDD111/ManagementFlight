@@ -39,12 +39,14 @@ namespace FlightManagement.Controllers
 
             var groupDtos = pagedGroups.Select(group => new GroupDto
             {
+                GroupId = group.GroupId,
                 GroupName = group.GroupName,
                 Member = group.Member,
                 Permissions = group.Permissions,
                 Creator = group.Creator,
-
+                Username = group.Members?.Select(member => member.Username).ToList()
             }).ToList();
+
 
             return new JsonResult(groupDtos);
         }
@@ -74,13 +76,13 @@ namespace FlightManagement.Controllers
         }
 
         [HttpPost]
-        public Task<ActionResult> CreateGroup([FromForm] GroupDto model)
+        public async Task<ActionResult> CreateGroup([FromForm] GroupDto model)
         {
             if (ModelState.IsValid)
             {
-                if (model.Usernames == null || !model.Usernames.Any())
+                if (model.Username == null || !model.Username.Any())
                 {
-                    return Task.FromResult<ActionResult>(BadRequest("Please select at least one member."));
+                    return BadRequest("Please select at least one member.");
                 }
 
                 var group = new Groups
@@ -93,7 +95,7 @@ namespace FlightManagement.Controllers
                     Members = new List<LoginUser>()
                 };
 
-                foreach (var username in model.Usernames)
+                foreach (var username in model.Username)
                 {
                     var user = _context.loginUsers.FirstOrDefault(u => u.Username == username);
                     if (user != null)
@@ -103,30 +105,42 @@ namespace FlightManagement.Controllers
                 }
 
                 _context.Group.Add(group);
-                _context.SaveChanges();
+                await _context.SaveChangesAsync();
 
                 // Create a DocumentInformation associated with the created group
                 var documentInfo = new DocumentInformation
                 {
-                    Documentname = "YourDocumentName", 
-                    Documenttype = "YourDocumentType", 
-                    Documentversion = "YourDocumentVersion", 
-                    Note = "YourNote", 
-                    FileName = "YourFileName", 
-                    IdFlight = group.GroupId, 
-                    AddFlight = null, 
-                    Groups = group 
+                    Documentname = "YourDocumentName",
+                    Documenttype = "YourDocumentType",
+                    Documentversion = "YourDocumentVersion",
+                    Note = "YourNote",
+                    FileName = "YourFileName",
+                    Groups = group  // Set the Groups navigation property
                 };
 
-                _context.DocumentInfo.Add(documentInfo);
-                _context.SaveChanges();
+                // Ensure that IdFlight corresponds to an existing FlightId in AddFlight
+                var addFlight = await _context.Addflights.FirstOrDefaultAsync();  // Replace this with your logic to get AddFlight
+                if (addFlight != null)
+                {
+                    documentInfo.IdFlight = addFlight.FlightId;
+                    documentInfo.AddFlight = addFlight;
+                }
+                else
+                {
+                    // Handle the case where no AddFlight record is found.
+                    return BadRequest("AddFlight record not found.");
+                }
 
-                return Task.FromResult<ActionResult>(CreatedAtAction(nameof(GetAll), new { id = group.GroupId }, group));
+                _context.DocumentInfo.Add(documentInfo);
+                await _context.SaveChangesAsync();
+
+                return CreatedAtAction(nameof(GetAll), new { id = group.GroupId }, group);
             }
 
-            return Task.FromResult<ActionResult>(BadRequest("Invalid model data."));
+            return BadRequest("Invalid model data.");
         }
-      
+
+
         [HttpGet("SearchGroupsByName")]
         public async Task<ActionResult<IEnumerable<Groups>>> SearchGroupsByName(string groupName)
         {

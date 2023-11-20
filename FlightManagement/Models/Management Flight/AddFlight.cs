@@ -128,7 +128,7 @@ namespace FlightManagement.Models.Management_Flight
         public int? Member { get; set; }
         public Permission? Permissions { get; set; }
         public string? Creator { get; set; }
-        public List<string>? Usernames { get; set; }
+        public List<string>? Username { get; set; }
     }
     public class RecentlyActivityDTO
     {

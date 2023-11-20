@@ -43,7 +43,7 @@ namespace FlightManagement.Controllers
                 TotalDocument = af.DocumentInformation.Count,
                 Documents = af.DocumentInformation
                  .Join(
-                     _context.Group, // Replace _context.Groups with the actual DbSet for the Groups table
+                     _context.Group, 
                      di => di.GroupId,
                      group => group.GroupId,
                      (di, group) => new DocumentDTO
@@ -83,10 +83,8 @@ namespace FlightManagement.Controllers
 
             int addFlightId = addFlight.FlightId;
 
-
             return CreatedAtAction(nameof(GetFlightDetails), new { flightId = addFlightId }, addFlightDTO);
         }
-
 
         private async Task<string> Writefile(IFormFile file)
         {
