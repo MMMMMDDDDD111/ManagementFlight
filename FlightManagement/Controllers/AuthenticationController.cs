@@ -44,11 +44,12 @@ namespace FlightManagement.Controllers
                     new Response { Status = "ERROR", Message = "User already exist" });
             }
 
-            //add user in databsae 
             IdentityUser user = new()
             {
+                Id = registerUser.Id.ToString(),
                 Email = registerUser.Email,
                 SecurityStamp = Guid.NewGuid().ToString(),
+                PhoneNumber = registerUser.Phonenumber?.ToString(),
                 UserName = registerUser.Username
             };
 
@@ -57,16 +58,13 @@ namespace FlightManagement.Controllers
                 var result = await _userManager.CreateAsync(user, registerUser.Password);
                 if (result.Succeeded)
                 {
-
-                    // Tài khoản tạo thành công
                     await _userManager.AddToRoleAsync(user, role);
+                    var registeredUsername = registerUser.Username;
                     return StatusCode(StatusCodes.Status200OK,
                         new Response { Status = "Success", Message = "User create successfully" });
                 }
                 else
                 {
-
-                    // Xử lý lỗi
                     string errors = string.Join(", ", result.Errors.Select(error => error.Description));
                     return StatusCode(StatusCodes.Status500InternalServerError,
                         new Response { Status = "Error", Message = result.ToString() });
@@ -182,7 +180,6 @@ namespace FlightManagement.Controllers
             {
                 try
                 {
-                    // Kiểm tra đuôi của tệp
                     var allowedExtensions = new[] { ".png", ".jpg", ".jpeg" };
                     var fileExtension = Path.GetExtension(profile.Image.FileName).ToLower();
 
@@ -195,7 +192,6 @@ namespace FlightManagement.Controllers
 
                     var uploads = Path.Combine(Directory.GetCurrentDirectory(), "Upload\\Image");
 
-                    // Đảm bảo thư mục tồn tại
                     if (!Directory.Exists(uploads))
                     {
                         Directory.CreateDirectory(uploads);

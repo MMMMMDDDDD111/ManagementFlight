@@ -41,7 +41,6 @@ namespace FlightManagement.Controllers
                          {
                              DocumentName = di.Documentname,
                              DocumentType = di.Documenttype,
-                             DocumentVersion = di.Documentversion,
                              FileName = di.FileName
                          })
                          .ToList(),
@@ -51,7 +50,6 @@ namespace FlightManagement.Controllers
                          {
                              DocumentName = di.Documentname,
                              DocumentType = di.Documenttype,
-                             DocumentVersion = di.Documentversion,
                              FileName = di.FileName
                          })
                          .ToList()

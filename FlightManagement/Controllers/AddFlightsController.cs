@@ -30,7 +30,7 @@ namespace FlightManagement.Controllers
 
             var pagedAddFlights = await _context.Addflights
                 .AsNoTracking()
-                .Include(af => af.DocumentInformation) // Include the navigation property
+                .Include(af => af.DocumentInformation)
                 .OrderByDescending(af => af.FlightId)
                 .ToPagedListAsync(pageNumber, pageSize);
 
@@ -42,20 +42,20 @@ namespace FlightManagement.Controllers
                 Route = $"{af.Pointofloding} - {af.Pointofunloading}",
                 TotalDocument = af.DocumentInformation.Count,
                 Documents = af.DocumentInformation
-                 .Join(
-                     _context.Group, 
-                     di => di.GroupId,
-                     group => group.GroupId,
-                     (di, group) => new DocumentDTO
-                     {
-                         DocumentName = di.Documentname,
-                         DocumentType = di.Documenttype,
-                         Creator = group.Creator, 
-                         CreateDate = af.Date,
-                         DocumentVersion = di.Documentversion
-                     })
-                 .ToList()
-                    }).ToList();
+                    .Join(
+                        _context.Group,
+                        di => di.GroupId,
+                        group => group.GroupId,
+                        (di, group) => new DocumentDTO
+                        {
+                            DocumentName = di.Documentname,
+                            DocumentType = di.Documenttype,
+                            Creator = group.Creator,
+                            CreateDate = af.Date,
+                            DocumentVersion = di.Documentversion
+                        })
+                    .ToList()
+            }).ToList();
 
             return new JsonResult(result);
         }
@@ -110,21 +110,6 @@ namespace FlightManagement.Controllers
             {
             }
             return filename;
-        }
-
-        private string IncrementVersion(string currentVersion)
-        {
-            if (currentVersion == "1.0")
-            {
-                return currentVersion;
-            }
-            var parts = currentVersion.Split('.');
-            if (parts.Length == 2 && int.TryParse(parts[1], out int minorVersion))
-            {
-                return $"{parts[0]}.{minorVersion + 1}";
-            }
-
-            return currentVersion;
         }
 
         [HttpPut("{id}")]

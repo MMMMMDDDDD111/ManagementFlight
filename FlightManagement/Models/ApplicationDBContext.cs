@@ -60,8 +60,6 @@ namespace FlightManagement.Models
                     .IsRequired()
                     .HasAnnotation("RegularExpression", "^(pilot|crew)$")
                     .HasAnnotation("ErrorMessage", "GroupName must be 'pilot' or 'crew");
-                entity.Property(g => g.Member);
-
             });
 
         }

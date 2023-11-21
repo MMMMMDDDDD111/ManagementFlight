@@ -31,6 +31,7 @@ namespace FlightManagement.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Password")
+                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.HasKey("Username");
@@ -132,9 +133,6 @@ namespace FlightManagement.Migrations
                         .HasColumnType("nvarchar(max)")
                         .HasAnnotation("ErrorMessage", "GroupName must be 'pilot' or 'crew")
                         .HasAnnotation("RegularExpression", "^(pilot|crew)$");
-
-                    b.Property<int?>("Member")
-                        .HasColumnType("int");
 
                     b.Property<int?>("Permissions")
                         .HasColumnType("int");

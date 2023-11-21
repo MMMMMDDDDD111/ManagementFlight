@@ -11,9 +11,9 @@ namespace FlightManagement.Models.Authentication.Login
     {
         [Key]
         [Required(ErrorMessage ="User name is required")]
-        public string? Username { get; set;}
+        public string Username { get; set;}
         [JsonIgnore]
-        public string? Password { get; set;}
+        public string Password { get; set;}
     }
     public class ChangePassword
     {

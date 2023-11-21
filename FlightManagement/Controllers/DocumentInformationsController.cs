@@ -17,6 +17,7 @@ using static FlightManagement.NewFolder.EnumExtensions;
 using X.PagedList;
 using static FlightManagement.Controllers.GroupsController;
 using Elasticsearch.Net;
+using Microsoft.CodeAnalysis;
 
 namespace FlightManagement.Controllers
 {
@@ -62,7 +63,7 @@ namespace FlightManagement.Controllers
                 {
                     DocumentName = documentInfo.Documentname,
                     Type = documentInfo.Documenttype,
-                    CreateDate = documentInfo.UpdateDate ?? DateTime.MinValue,
+                    CreateDate = DateTime.Now,
                     FlightNO = documentInfo.AddFlight?.Flightno ?? string.Empty
                 };
 
@@ -77,128 +78,134 @@ namespace FlightManagement.Controllers
 
             return new JsonResult(new { Data = docsList });
         }
-
-       
-
-
-        // PUT: api/DocumentInformations/5
-        // To protect from overposting attacks, see https://go.microsoft.com/fwlink/?linkid=2123754
-        [HttpPut("{id}")]
-        public async Task<IActionResult> PutDocumentInformation(int id, DocumentInformation documentInformation)
-        {
-            if (id != documentInformation.Id)
-            {
-                return BadRequest();
-            }
-
-            _context.Entry(documentInformation).State = EntityState.Modified;
-
-            try
-            {
-                await _context.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!DocumentInformationExists(id))
-                {
-                    return NotFound();
-                }
-                else
-                {
-                    throw;
-                }
-            }
-
-            return NoContent();
-        }
-        private async Task<string> Writefile(IFormFile file)
-        {
-            string filename = "";
-            try
-            {
-                var extension = "." + file.FileName.Split('.')[file.FileName.Split('.').Length - 1];
-                filename = DateTime.Now.Ticks.ToString() + extension;
-
-                var filepath = Path.Combine(Directory.GetCurrentDirectory(), "Upload\\Files");
-
-                if (!Directory.Exists(filepath))
-                {
-                    Directory.CreateDirectory(filepath);
-                }
-                var exactpath = Path.Combine(Directory.GetCurrentDirectory(), "Upload\\Files", filename);
-                using (var stream = new FileStream(exactpath, FileMode.Create))
-                {
-                    await file.CopyToAsync(stream);
-                }
-            }
-            catch (Exception ex)
-            {
-            }
-            return filename;
-        }
         [HttpPost]
-        public async Task<ActionResult<DocumentInformation>> PostDocumentInformation([FromForm] DocumentInfoDTO requestDTO, IFormFile file)
+        public async Task<ActionResult<DocumentInformation>> CreateDocument([FromForm] DocumentInfoDTO createDTO, IFormFile file)
         {
-            if (_context.DocumentInfo == null)
+            if (createDTO == null || ModelState.IsValid == false)
             {
-                return Problem("Entity set 'ApplicationDBContext.DocumentInfo' is null.");
+                return BadRequest("Invalid input data");
             }
 
-            var documentInformation = new DocumentInformation
+            if (IsCreateAllowed())
             {
-                Documentname = requestDTO.DocumentName,
-                Documenttype = requestDTO.DocumentType,
-                Documentversion = requestDTO.DocumentVersion,
-                Note = "",
-                FileName = requestDTO.FileName,
-                Status = "",
-                IdFlight = requestDTO.IdFlight,  
-            };
-
-            // Kiểm tra xem IdFlight có tồn tại trong bảng AddFlight không
-            var addFlight = _context.Addflights.Find(requestDTO.IdFlight);
-
-            if (addFlight != null)
-            {
-                // Kiểm tra giá trị của IdFlight
-                documentInformation.IdFlight = addFlight.FlightId;
-
-                // Kiểm tra xem DocumentInformation có thể tự động thêm vào AddFlight không
-                if (addFlight.DocumentInformation == null)
+                try
                 {
-                    addFlight.DocumentInformation = new List<DocumentInformation>();
+                    var documentInformation = new DocumentInformation
+                    {
+                        Documentname = createDTO.DocumentName,
+                        Documenttype = createDTO.DocumentType,
+                        Note = "",
+                        FileName = createDTO.FileName,
+                        Status = "",
+                        IdFlight = createDTO.IdFlight,
+                    };
+
+                    var addFlight = _context.Addflights.Find(createDTO.IdFlight);
+
+                    if (addFlight != null)
+                    {
+                        documentInformation.IdFlight = addFlight.FlightId;
+
+                        if (addFlight.DocumentInformation == null)
+                        {
+                            addFlight.DocumentInformation = new List<DocumentInformation>();
+                        }
+
+                        var group = _context.Group.Find(createDTO.GroupId);
+
+                        if (group != null)
+                        {
+                            documentInformation.GroupId = group.GroupId;
+                        }
+                        else
+                        {
+                            return BadRequest("Group with the specified GroupId not found.");
+                        }
+
+                        addFlight.DocumentInformation.Add(documentInformation);
+
+                        await _context.SaveChangesAsync();
+
+                        return CreatedAtAction(nameof(GetDocumentInfo), new { id = documentInformation.Id }, documentInformation);
+                    }
+                    else
+                    {
+                        return BadRequest("AddFlight with the specified FlightId not found.");
+                    }
                 }
-
-                // Kiểm tra xem GroupId có tồn tại trong bảng Group không
-                var group = _context.Group.Find(requestDTO.GroupId);
-
-                if (group != null)
+                catch (Exception ex)
                 {
-                    documentInformation.GroupId = group.GroupId;
+                    Console.WriteLine($"Error creating document: {ex.Message}");
+                    return StatusCode(500, "Internal server error");
                 }
-                else
-                {
-                    return BadRequest("Group with the specified GroupId not found.");
-                }
-
-                addFlight.DocumentInformation.Add(documentInformation);
-
-                // Lưu lại thay đổi trong cả hai bảng
-                await _context.SaveChangesAsync();
-
-                return CreatedAtAction(nameof(GetDocumentInfo), new { id = documentInformation.Id }, documentInformation);
             }
             else
             {
-                return BadRequest("AddFlight with the specified FlightId not found.");
+                return BadRequest("Creating a new document is not allowed at this time.");
             }
         }
+
+        private bool IsCreateAllowed()
+        {
+            DateTime thresholdTime = DateTime.UtcNow.AddHours(-2);
+            return DateTime.UtcNow < thresholdTime;
+        }
+
+        [HttpPut]
+        public async Task<ActionResult<DocumentInformation>> UpdateDocumentInformation([FromForm] DocumentInfoDTO updateDTO, IFormFile file)
+        {
+            if (updateDTO == null || ModelState.IsValid == false)
+            {
+                return BadRequest("Invalid input data");
+            }
+
+            var existingDocument = await _context.DocumentInfo
+                .Include(doc => doc.AddFlight)
+                .FirstOrDefaultAsync(doc => doc.Id == updateDTO.ID);
+
+            if (existingDocument == null)
+            {
+                return NotFound("Document not found");
+            }
+
+            // Check if the document can be updated based on time
+            if (IsUpdateAllowed(existingDocument.UpdateDate))
+            {
+                try
+                {
+                    existingDocument.Documentname = updateDTO.DocumentName;
+                    existingDocument.Documenttype = updateDTO.DocumentType;
+                    existingDocument.IdFlight = updateDTO.IdFlight;
+                    existingDocument.AddFlight = await _context.Addflights.FirstOrDefaultAsync(af => af.FlightId == updateDTO.IdFlight);
+                    existingDocument.GroupId = updateDTO.GroupId;
+                    existingDocument.Groups = await _context.Group.FirstOrDefaultAsync(g => g.GroupId == updateDTO.GroupId);
+
+                    existingDocument.Documentversion = IncrementVersion(existingDocument.Documentversion);
+
+                    await _context.SaveChangesAsync();
+
+                    return Ok(new { Id = existingDocument.Id, Message = "Document updated successfully" });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error updating document: {ex.Message}");
+                    return StatusCode(500, "Internal server error");
+                }
+            }
+            else
+            {
+                return BadRequest("Updating the document is not allowed after a certain time.");
+            }
+        }
+
+        private bool IsUpdateAllowed(DateTime? updateDate)
+        {
+            DateTime thresholdTime = DateTime.UtcNow.AddHours(-2);
+            return updateDate == null || updateDate < thresholdTime;
+        }
+
         private string IncrementVersion(string currentVersion)
         {
-            if (currentVersion == "1.0")
-            {
-                return currentVersion;
-            }
             var parts = currentVersion.Split('.');
             if (parts.Length == 2 && int.TryParse(parts[1], out int minorVersion))
             {
@@ -207,7 +214,6 @@ namespace FlightManagement.Controllers
 
             return currentVersion;
         }
-
 
         //DOWLOAD FILES
         [HttpGet]

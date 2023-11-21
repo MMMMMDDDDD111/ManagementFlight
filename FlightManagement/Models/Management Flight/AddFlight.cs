@@ -63,7 +63,6 @@ namespace FlightManagement.Models.Management_Flight
         [Required(ErrorMessage = "GroupName is required.")]
         [RegularExpression("^(pilot|crew)$", ErrorMessage = "GroupName must be 'pilot' or 'crew'.")]
         public string? GroupName { get; set; }
-        public int? Member { get; set; }
         public Permission? Permissions { get; set; }
         [ForeignKey("Creator")]
         public string? Creator { get; set; }
@@ -86,17 +85,16 @@ namespace FlightManagement.Models.Management_Flight
         public string DocumentType { get; set; }
         public DateTime? CreateDate { get; set; }
         public string Creator { get; set; }
-        public string DocumentVersion { get; set; }
+        public string DocumentVersion { get; set; } 
     }
     public class DocumentInfoDTO
     {
+        public int ID { get; set; }
         public int IdFlight { get; set; }
         public int GroupId { get; set; }
         public string DocumentName { get; set; }
         public string DocumentType { get; set; }
-        public string DocumentVersion { get; set; }
         public string FileName { get; set; }
-        public Permission Permission { get; set; }
     }
     
     public class DocsList
@@ -119,16 +117,23 @@ namespace FlightManagement.Models.Management_Flight
         public string? Pointofloding { get; set; }
         [Required]
         public string? Pointofunloading { get; set; }
-        public List<DocumentInfoDTO> DocumentInformation { get; set; }
     }   
     public class GroupDto
+    {
+        public int GroupId { get; set; }
+        public string? GroupName { get; set; }
+        public Permission? Permissions { get; set; }
+        public string? Creator { get; set; }
+        public List<string>? Username { get; set; } = new List<string>();
+    }
+    public class GroupDTO
     {
         public int GroupId { get; set; }
         public string? GroupName { get; set; }
         public int? Member { get; set; }
         public Permission? Permissions { get; set; }
         public string? Creator { get; set; }
-        public List<string>? Username { get; set; }
+        public List<string>? Username { get; set; } = new List<string>();
     }
     public class RecentlyActivityDTO
     {
