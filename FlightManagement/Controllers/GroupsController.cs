@@ -21,8 +21,14 @@ namespace FlightManagement.Controllers
         private readonly ApplicationDBContext _context;
         private readonly LoginUser loginUser;
         private readonly DocumentInformation documentInformation;
+        private readonly UserManager<IdentityUser> _userManager;
 
-        public GroupsController(ApplicationDBContext context) => _context = context;
+        public GroupsController(ApplicationDBContext context, UserManager<IdentityUser> userManager)
+        {
+            _context = context;
+            _userManager = userManager;
+        }
+
         // GET: api/<GroupsController>
         [HttpGet("GetGroupDetails")]
         [ProducesResponseType(typeof(IEnumerable<GroupDto>), StatusCodes.Status200OK)]
@@ -50,7 +56,7 @@ namespace FlightManagement.Controllers
                 Member = group.Members?.Count ?? 0,
                 Permissions = group.Permissions,
                 Creator = group.Creator,
-                Username = group.Members?.Select(member => member.Username).ToList() ?? new List<string>()
+                Username = group.Members?.Select(member => member.UserName).ToList() ?? new List<string>()
             }).ToList();
 
             return new JsonResult(groupDtos);
@@ -89,12 +95,12 @@ namespace FlightManagement.Controllers
                     GroupName = model.GroupName,
                     Permissions = model.Permissions,
                     Creator = model.Creator,
-                    Members = new List<LoginUser>()
+                    Members = new List<IdentityUser>()
                 };
 
                 foreach (var username in model.Username)
                 {
-                    var user = _context.loginUsers.FirstOrDefault(u => u.Username == username);
+                    var user = await _userManager.FindByNameAsync(username.Trim());
                     if (user != null)
                     {
                         group.Members.Add(user);
@@ -111,6 +117,43 @@ namespace FlightManagement.Controllers
             return BadRequest("Invalid model data.");
         }
 
+        [HttpPut]
+        public async Task<ActionResult> UpdateGroup([FromForm] GroupDto model)
+        {
+            if (ModelState.IsValid)
+            {
+                var existingGroup = await _context.Group.FindAsync(model.GroupId);
+
+                if (existingGroup == null)
+                {
+                    return NotFound("Group not found.");
+                }
+
+                existingGroup.GroupName = model.GroupName;
+                existingGroup.Permissions = model.Permissions;
+                existingGroup.Creator = model.Creator;
+
+                if (model.Username != null && model.Username.Any())
+                {
+                    existingGroup.Members.Clear(); // Clear existing members
+
+                    foreach (var username in model.Username)
+                    {
+                        var user = await _userManager.FindByNameAsync(username.Trim());
+                        if (user != null)
+                        {
+                            existingGroup.Members.Add(user);
+                        }
+                    }
+                }
+
+                await _context.SaveChangesAsync();
+
+                return Ok("Group updated successfully.");
+            }
+
+            return BadRequest("Invalid model data.");
+        }
 
         [HttpGet("SearchGroupsByName")]
         public async Task<ActionResult<IEnumerable<Groups>>> SearchGroupsByName(string groupName)
@@ -132,6 +175,12 @@ namespace FlightManagement.Controllers
             return groups;
         }
 
+
+        // DELETE api/<GroupsController>/5
+        [HttpDelete("{id}")]
+        public void Delete(int id)
+        {
+        }
     }
 }
 

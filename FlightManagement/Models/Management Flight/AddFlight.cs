@@ -53,6 +53,9 @@ namespace FlightManagement.Models.Management_Flight
         public Groups Groups { get; set; }
         public string? Creator { get; set; }
         public DateTime? UpdateDate { get; set; }
+        [ForeignKey("UpdatedVersion")]
+        public int UpdateVersionId { get; set; }
+        public ICollection<UpdateVersion> UpdateVersions { get; set; }
     }
 
     [Table("Group")]
@@ -66,7 +69,7 @@ namespace FlightManagement.Models.Management_Flight
         public Permission? Permissions { get; set; }
         [ForeignKey("Creator")]
         public string? Creator { get; set; }
-        public ICollection<LoginUser>? Members { get; set; }
+        public ICollection<IdentityUser>? Members { get; set; } = new List<IdentityUser>();
     }
 
     public class AddFlightDTO
@@ -105,6 +108,25 @@ namespace FlightManagement.Models.Management_Flight
         public string Creator { get; set; }
         public string FlightNO { get; set; }
     }
+    public class ViewDoc
+    {
+        public int Id { get; set; }
+        public string Title { get; set; }
+        public string Type { get; set; }
+        public DateTime CreateDate { get; set; } = DateTime.Now;
+        public string? Creator { get; set; }
+        public Permission? Permissions { get; set; }
+        public ICollection<UpdateVersion>? UpdatedVersions { get; set; }
+    }
+    public class UpdateVersion
+    {
+        [Key]
+        public int Id { get; set; }
+        public int DocID { get; set; }
+        public string Version { get; set; }
+        public string Date { get; set; } 
+    }
+
 
     public class FlightDTO
     {

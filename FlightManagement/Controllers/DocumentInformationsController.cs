@@ -18,6 +18,8 @@ using X.PagedList;
 using static FlightManagement.Controllers.GroupsController;
 using Elasticsearch.Net;
 using Microsoft.CodeAnalysis;
+using System.Security.Cryptography;
+using Nest;
 
 namespace FlightManagement.Controllers
 {
@@ -67,7 +69,6 @@ namespace FlightManagement.Controllers
                     FlightNO = documentInfo.AddFlight?.Flightno ?? string.Empty
                 };
 
-                // Kiểm tra xem documentInfo có GroupId và Group tồn tại không
                 if (group != null)
                 {
                     docsListItem.Creator = group.Creator;
@@ -78,6 +79,42 @@ namespace FlightManagement.Controllers
 
             return new JsonResult(new { Data = docsList });
         }
+
+        [HttpGet("view-docs")]
+        public async Task<ActionResult<List<ViewDoc>>> GetDocumentViews()
+        {
+            var documentInfos = await _context.DocumentInfo
+                .Include(af => af.AddFlight)
+                .Include(doc => doc.Groups)
+                .ThenInclude(group => group.Members)
+                .Include(doc => doc.UpdateVersions)
+                .ToListAsync();
+
+            if (documentInfos == null || !documentInfos.Any())
+            {
+                return NotFound("Documents not found.");
+            }
+
+            var viewDocs = documentInfos.Select(documentInfo => new ViewDoc
+            {
+                Id = documentInfo.Id,
+                Title = documentInfo.FileName,
+                Type = documentInfo.Documenttype,
+                CreateDate = documentInfo.AddFlight?.Date ?? DateTime.Now,
+                Permissions = documentInfo.Groups.Permissions,
+                Creator = documentInfo.Groups.Creator != null ? $"By: {documentInfo.Groups.Creator}" : "Creator not available",
+                UpdatedVersions = documentInfo.Documentversion?.Select(version => new UpdateVersion
+                {
+                    DocID = documentInfo.Id,
+                    Version = documentInfo.Documentversion,
+                    Date = documentInfo.AddFlight?.Date?.ToString("yyyy-MM-dd") ?? "N/A"
+                }).ToList()
+            }).ToList();
+
+            return Ok(viewDocs);
+        }
+
+
         [HttpPost]
         public async Task<ActionResult<DocumentInformation>> CreateDocument([FromForm] DocumentInfoDTO createDTO, IFormFile file)
         {
@@ -168,7 +205,6 @@ namespace FlightManagement.Controllers
                 return NotFound("Document not found");
             }
 
-            // Check if the document can be updated based on time
             if (IsUpdateAllowed(existingDocument.UpdateDate))
             {
                 try
