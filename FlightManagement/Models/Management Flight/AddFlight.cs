@@ -55,7 +55,8 @@ namespace FlightManagement.Models.Management_Flight
         public DateTime? UpdateDate { get; set; }
         [ForeignKey("UpdatedVersion")]
         public int UpdateVersionId { get; set; }
-        public ICollection<UpdateVersion> UpdateVersions { get; set; }
+        public ICollection<UpdateVersion> UpdateVersions { get; set; } = new List<UpdateVersion>();
+        public ICollection<PreviousVersion> PreviousVersions { get; set; } = new List<PreviousVersion>();
     }
 
     [Table("Group")]
@@ -116,18 +117,41 @@ namespace FlightManagement.Models.Management_Flight
         public DateTime CreateDate { get; set; } = DateTime.Now;
         public string? Creator { get; set; }
         public Permission? Permissions { get; set; }
-        public ICollection<UpdateVersion>? UpdatedVersions { get; set; }
+        public List<UpdateVersionDTO>? UpdatedVersions { get; set; }
+
     }
     public class UpdateVersion
     {
         [Key]
         public int Id { get; set; }
         public int DocID { get; set; }
-        public string Version { get; set; }
-        public string Date { get; set; } 
+        public List<PreviousVersion> PreviousVersions { get; set; } = new List<PreviousVersion>();
+        public string Date { get; set; }
+        public DocumentInformation DocumentInformation { get; set; }
+    }
+    
+    public class UpdateVersionDTO
+    {
+        public int Id { get; set; }
+        public int DocID { get; set; }
+        public List<PreviousVersionDTO> PreviousVersions { get; set; } = new List<PreviousVersionDTO>();
+        public string Date { get; set; }
     }
 
-
+    public class PreviousVersion
+    {
+        [Key]
+        public int Id { get; set; }
+        public string Version { get; set; }
+        public int UpdateVersionId { get; set; }
+        [ForeignKey("UpdateVersionId")]
+        public UpdateVersion UpdateVersion { get; set; }
+    }
+    public class PreviousVersionDTO
+    {
+        public int Id { get; set; }
+        public string Version { get; set; }
+    }
     public class FlightDTO
     {
         public int FlightId { get; set; }

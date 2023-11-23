@@ -140,6 +140,33 @@ namespace FlightManagement.Migrations
                     b.ToTable("Group", (string)null);
                 });
 
+            modelBuilder.Entity("FlightManagement.Models.Management_Flight.PreviousVersion", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"), 1L, 1);
+
+                    b.Property<int?>("DocumentInformationId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("UpdateVersionId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("DocumentInformationId");
+
+                    b.HasIndex("UpdateVersionId");
+
+                    b.ToTable("PreviousVersions");
+                });
+
             modelBuilder.Entity("FlightManagement.Models.Management_Flight.UpdateVersion", b =>
                 {
                     b.Property<int>("Id")
@@ -155,18 +182,11 @@ namespace FlightManagement.Migrations
                     b.Property<int>("DocID")
                         .HasColumnType("int");
 
-                    b.Property<int?>("DocumentInformationId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("Version")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
                     b.HasKey("Id");
 
-                    b.HasIndex("DocumentInformationId");
+                    b.HasIndex("DocID");
 
-                    b.ToTable("UpdateVersion");
+                    b.ToTable("UpdateVersions");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -421,11 +441,30 @@ namespace FlightManagement.Migrations
                     b.Navigation("Groups");
                 });
 
-            modelBuilder.Entity("FlightManagement.Models.Management_Flight.UpdateVersion", b =>
+            modelBuilder.Entity("FlightManagement.Models.Management_Flight.PreviousVersion", b =>
                 {
                     b.HasOne("FlightManagement.Models.Management_Flight.DocumentInformation", null)
-                        .WithMany("UpdateVersions")
+                        .WithMany("PreviousVersions")
                         .HasForeignKey("DocumentInformationId");
+
+                    b.HasOne("FlightManagement.Models.Management_Flight.UpdateVersion", "UpdateVersion")
+                        .WithMany("PreviousVersions")
+                        .HasForeignKey("UpdateVersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("UpdateVersion");
+                });
+
+            modelBuilder.Entity("FlightManagement.Models.Management_Flight.UpdateVersion", b =>
+                {
+                    b.HasOne("FlightManagement.Models.Management_Flight.DocumentInformation", "DocumentInformation")
+                        .WithMany("UpdateVersions")
+                        .HasForeignKey("DocID")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DocumentInformation");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
@@ -493,12 +532,19 @@ namespace FlightManagement.Migrations
 
             modelBuilder.Entity("FlightManagement.Models.Management_Flight.DocumentInformation", b =>
                 {
+                    b.Navigation("PreviousVersions");
+
                     b.Navigation("UpdateVersions");
                 });
 
             modelBuilder.Entity("FlightManagement.Models.Management_Flight.Groups", b =>
                 {
                     b.Navigation("Members");
+                });
+
+            modelBuilder.Entity("FlightManagement.Models.Management_Flight.UpdateVersion", b =>
+                {
+                    b.Navigation("PreviousVersions");
                 });
 #pragma warning restore 612, 618
         }

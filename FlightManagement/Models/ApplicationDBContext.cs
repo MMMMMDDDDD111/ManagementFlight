@@ -23,6 +23,8 @@ namespace FlightManagement.Models
     public DbSet<DocumentInformation> DocumentInfo { get; set; }
     public DbSet<Groups> Group { get; set; }
     public DbSet<LoginUser> loginUsers { get; set; }
+   public DbSet<UpdateVersion> UpdateVersions { get; set; }
+   public DbSet<PreviousVersion> PreviousVersions { get; set; }
 
 
         protected override void OnModelCreating(ModelBuilder builder)
@@ -51,6 +53,22 @@ namespace FlightManagement.Models
             .HasForeignKey(d => d.IdFlight)
             .OnDelete(DeleteBehavior.Cascade);
 
+            builder.Entity<UpdateVersion>()
+              .HasMany(uv => uv.PreviousVersions)
+              .WithOne(pv => pv.UpdateVersion)
+              .HasForeignKey(pv => pv.UpdateVersionId);
+
+            builder.Entity<DocumentInformation>()
+              .HasMany(d => d.UpdateVersions)
+              .WithOne(u => u.DocumentInformation)
+              .HasForeignKey(u => u.DocID)
+              .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<UpdateVersion>()
+                .HasMany(u => u.PreviousVersions)
+                .WithOne(p => p.UpdateVersion)
+                .HasForeignKey(p => p.UpdateVersionId)
+                .OnDelete(DeleteBehavior.Cascade);
 
             builder.Entity<Groups>(entity =>
             {
