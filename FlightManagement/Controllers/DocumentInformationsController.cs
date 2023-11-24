@@ -33,10 +33,11 @@ namespace FlightManagement.Controllers
         private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ILogger<DocumentInformationsController> _logger;
 
-        public DocumentInformationsController(ApplicationDBContext context, RoleManager<IdentityRole> roleManager)
+        public DocumentInformationsController(ApplicationDBContext context, RoleManager<IdentityRole> roleManager, ILogger<DocumentInformationsController> logger)
         {
             _context = context;
             _roleManager = roleManager;
+            _logger = logger;
         }
 
         // GET: api/DocumentInformations
@@ -116,8 +117,6 @@ namespace FlightManagement.Controllers
                         Date = updateVersion.Date,
                 }).ToList()
             }).ToList();
-
-
             return Ok(viewDocs);
         }
 
@@ -246,7 +245,6 @@ namespace FlightManagement.Controllers
             {
                 var newVersion = $"{parts[0]}.{minorVersion + 1}";
 
-                // Create and associate UpdateVersion if it doesn't exist
                 var updateVersion = existingDocument.UpdateVersions?.LastOrDefault() ?? new UpdateVersion
                 {
                     DocID = existingDocument.Id,

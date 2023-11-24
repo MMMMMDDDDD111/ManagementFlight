@@ -35,7 +35,7 @@ namespace FlightManagement.Models
             SeedRoles(builder);
         builder.Entity<AddFlight>()
         .Property(a => a.Date)
-        .HasColumnType("date");
+        .HasColumnType("datetime2");
 
         builder.Entity<AddFlight>()
          .HasMany(a => a.DocumentInformation)

@@ -46,7 +46,7 @@ namespace FlightManagement.Migrations
 
                     b.Property<DateTime?>("Date")
                         .IsRequired()
-                        .HasColumnType("date");
+                        .HasColumnType("datetime2");
 
                     b.Property<string>("Flightno")
                         .IsRequired()

@@ -73,7 +73,7 @@ namespace FlightManagement.Controllers
             var addFlight = new AddFlight
             {
                 Flightno = addFlightDTO.Flightno,
-                Date = addFlightDTO.Date,
+                Date = addFlightDTO.Date ?? DateTime.Now,
                 Pointofloding = addFlightDTO.Pointofloding,
                 Pointofunloading = addFlightDTO.Pointofunloading,
                 DocumentInformation = new List<DocumentInformation>()

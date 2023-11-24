@@ -143,8 +143,8 @@ namespace FlightManagement.Models.Management_Flight
         [Key]
         public int Id { get; set; }
         public string Version { get; set; }
-        public int UpdateVersionId { get; set; }
         [ForeignKey("UpdateVersionId")]
+        public int UpdateVersionId { get; set; }
         public UpdateVersion UpdateVersion { get; set; }
     }
     public class PreviousVersionDTO
@@ -194,10 +194,10 @@ namespace FlightManagement.Models.Management_Flight
     public class CurrentFlightDTO
     {
         public int FlightId { get; set; }
-        public DateTime DepartureTime { get; set; }
-        public DateTime ArrivalTime { get; set; }
-        public List<DocumentInfoDTO> SentFiles { get; set; }
-        public List<DocumentInfoDTO> ReturnedFiles { get; set; }
+        public DateTime? DepartureTime { get; set; }
+        public TimeSpan? ArrivalTime { get; set; }
+        public List<DocumentInfoDTO>? SentFiles { get; set; }
+        public List<DocumentInfoDTO>? ReturnedFiles { get; set; }
     }
 
     public class DashboardDTO
