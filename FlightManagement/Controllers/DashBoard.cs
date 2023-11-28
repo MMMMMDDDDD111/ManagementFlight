@@ -40,23 +40,53 @@ namespace FlightManagement.Controllers
                 .ToList();
 
             var currentFlights = _context.Addflights
-                .Where(cf => cf.FlightId == id1 || cf.FlightId == id2)
-                .AsEnumerable() 
-                .Select(cf => new CurrentFlightDTO
-                {
-                    FlightId = cf.FlightId,
-                    DepartureTime = cf.Date ?? DateTime.MinValue,
-                    ArrivalTime = _context.Addflights
-                        .Where(innerCf => (innerCf.FlightId == id1 || innerCf.FlightId == id2) && innerCf.Date < cf.Date)
-                        .OrderByDescending(innerCf => innerCf.Date)
-                        .Take(2)
-                        .AsEnumerable()
-                        .Select(d => (TimeSpan?)(cf.Date - d.Date))
-                        .Reverse()
-                        .Take(2)
-                        .Aggregate(TimeSpan.Zero, (acc, time) => acc.Add(time ?? TimeSpan.Zero))
-                })
-                .ToList();
+              .Where(cf => cf.FlightId == id1 || cf.FlightId == id2)
+              .AsEnumerable()
+              .Select(cf =>
+              {
+                  var arrivalTimes = _context.Addflights
+                      .Where(innerCf => (innerCf.FlightId == id1 || innerCf.FlightId == id2) && innerCf.Date < cf.Date)
+                      .OrderByDescending(innerCf => innerCf.Date)
+                      .Take(2)
+                      .AsEnumerable()
+                      .Select(d => (TimeSpan?)(cf.Date - d.Date))
+                      .Reverse()
+                      .Take(2)
+                      .ToList();
+
+                  var aggregatedTime = arrivalTimes.Aggregate(TimeSpan.Zero, (acc, time) => acc.Add(time ?? TimeSpan.Zero));
+
+                  var sentFiles = _context.DocumentInfo
+                      .Select(di => new DocumentInfoDTO
+                      {
+                          ID = di.Id,
+                          DocumentName = di.Documentname,
+                          DocumentType = di.Documenttype,
+                          FileName = di.FileName
+                          
+                      })
+                      .ToList();
+
+                  var returnedFiles = _context.DocumentInfo
+                      .Select(di => new DocumentInfoDTO
+                      {
+                          ID = di.Id,
+                          DocumentName = di.Documentname,
+                          DocumentType = di.Documenttype,
+                          FileName = di.FileName
+                      })
+                      .ToList();
+
+                  return new CurrentFlightDTO
+                  {
+                      FlightId = cf.FlightId,
+                      DepartureTime = cf.Date ?? DateTime.MinValue,
+                      ArrivalTime = aggregatedTime,
+                      SentFiles = sentFiles,
+                      ReturnedFiles = returnedFiles
+                  };
+              })
+              .ToList();
 
             var dashboard = new DashboardDTO
             {
